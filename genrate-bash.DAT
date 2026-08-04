@@ -1,0 +1,4 @@
+mkdir -p /home/claude/intuity-integration/netlify/functions /home/claude/intuity-integration/admin && echo ok
+Output
+
+ok
