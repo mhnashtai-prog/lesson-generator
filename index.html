@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INTUITY — Lesson Generator (Admin)</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0c; --bg2: #161512; --bg3: #1e1c17;
+  --border: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.18);
+  --gold: #c9a84c; --gold-dim: rgba(201,168,76,0.15);
+  --text: #f0ede8; --text-muted: #8c8880; --text-dim: #55534c;
+  --red: #c0392b; --green: #2e8b57;
+  --r: 8px; --r-lg: 12px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5;
+}
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 28px; border-bottom: 1px solid var(--border);
+}
+.topbar-brand { font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.topbar-brand span { color: var(--gold); }
+.topbar-note { font-size: 11px; color: var(--text-dim); letter-spacing: 0.05em; }
+
+.main { max-width: 760px; margin: 0 auto; padding: 40px 24px 90px; }
+
+/* ── GATE ── */
+#gate { max-width: 360px; margin: 90px auto; text-align: center; }
+#gate h2 { font-weight: 500; letter-spacing: 0.03em; margin-bottom: 8px; }
+#gate p { color: var(--text-muted); font-size: 12.5px; margin-bottom: 20px; }
+#gate input { width: 100%; margin-bottom: 12px; }
+
+/* ── LAYOUT ── */
+.stage { display: none; }
+.stage.active { display: block; animation: fadeIn 0.3s ease both; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.eyebrow { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+h1.page-title { font-weight: 500; font-size: 1.6rem; letter-spacing: 0.01em; margin-bottom: 8px; }
+.page-sub { color: var(--text-muted); font-size: 0.9rem; max-width: 560px; line-height: 1.6; margin-bottom: 26px; }
+
+label.field-label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+textarea, input[type=password] {
+  width: 100%; border: 1px solid var(--border); border-radius: var(--r); padding: 12px 14px;
+  font-family: inherit; font-size: 14px; background: var(--bg2); color: var(--text); outline: none; resize: vertical;
+}
+textarea { line-height: 1.7; }
+textarea:focus, input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dim); }
+
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px; margin-bottom: 18px; }
+.field-group { margin-bottom: 20px; }
+.field-hint { font-size: 11.5px; color: var(--text-dim); margin-top: 6px; }
+
+.level-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+@media (max-width:600px) { .level-grid { grid-template-columns: 1fr; } }
+.level-card { border: 1.5px solid var(--border); border-radius: var(--r-lg); padding: 14px 14px 12px; cursor: pointer; background: var(--bg3); transition: all .15s; }
+.level-card:hover { border-color: var(--border-hover); }
+.level-card.selected { border-color: var(--gold); background: var(--gold-dim); }
+.level-code { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 3px; }
+.level-card.selected .level-code { color: var(--gold); }
+.level-name { font-size: 12px; font-weight: 500; margin-bottom: 5px; }
+.level-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: var(--r); font-size: 13.5px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; letter-spacing: 0.02em; }
+.btn-gold { background: var(--gold); color: #14130f; }
+.btn-gold:hover { background: #ddb95c; }
+.btn-gold:disabled { background: #4a4534; color: #8a856f; cursor: not-allowed; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+.btn-outline:hover { border-color: var(--border-hover); color: var(--text); }
+.btn-green { background: var(--green); color: white; }
+.btn-green:hover { background: #25714a; }
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 22px; }
+
+.loading-box { text-align: center; padding: 70px 20px; }
+.loading-ring { width: 40px; height: 40px; margin: 0 auto 22px; border-radius: 50%; border: 3px solid var(--bg3); border-top-color: var(--gold); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 12px; color: var(--text-muted); letter-spacing: 0.05em; }
+
+.preview-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 24px; }
+.preview-box h3 { font-weight: 500; font-size: 1.2rem; margin-bottom: 4px; }
+.preview-eyebrow { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+.preview-subtitle { font-size: 13px; color: var(--text-muted); font-style: italic; margin-bottom: 18px; }
+.preview-section { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 12px 0; border-top: 1px solid var(--border); }
+.preview-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); padding-top: 2px; }
+.preview-val { font-size: 13.5px; color: var(--text); line-height: 1.6; }
+.pill { display: inline-block; background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); border-radius: 99px; padding: 2px 9px; font-size: 11.5px; margin: 2px 4px 2px 0; }
+
+.error-box { background: rgba(192,57,43,0.12); border: 1px solid rgba(192,57,43,0.35); color: #e57468; border-radius: var(--r); padding: 14px 16px; font-size: 13px; margin-top: 16px; line-height: 1.6; }
+
+#gen-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: var(--r); font-size: 13px; opacity: 0; transition: all .2s; z-index: 999; white-space: nowrap; }
+#gen-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">INTUITY <span>· Generator</span></div>
+  <div class="topbar-note">admin only</div>
+</div>
+
+<!-- ═══ PASSWORD GATE ═══ -->
+<div id="gate">
+  <h2>Enter admin key</h2>
+  <p>This unlocks the lesson generator. It's stored only in this browser tab.</p>
+  <input type="password" id="admin-key-input" placeholder="Admin key">
+  <button class="btn btn-gold" style="width:100%;justify-content:center" onclick="unlockGate()">Unlock</button>
+  <div id="gate-error" class="error-box" style="display:none"></div>
+</div>
+
+<div id="gen-toast"></div>
+
+<div class="main" id="app" style="display:none">
+
+  <!-- ═══ STAGE 1: INPUT ═══ -->
+  <div class="stage active" id="stage-input">
+    <div class="eyebrow">Reading · Step 1 of 2</div>
+    <h1 class="page-title">Paste your article</h1>
+    <p class="page-sub">Title, vocabulary, definitions, synonyms, pre-reading questions, quiz, and takeaways are all written automatically. Pick a level and generate.</p>
+
+    <div class="card">
+      <div class="field-group">
+        <label class="field-label">Article text</label>
+        <textarea id="article-input" rows="14" placeholder="Paste the full article here. Separate paragraphs with a blank line for best results."></textarea>
+        <div class="field-hint">150–1000 words works best.</div>
+      </div>
+
+      <div class="field-group" style="margin-bottom:0">
+        <label class="field-label">Target CEFR level</label>
+        <div class="level-grid">
+          <div class="level-card" data-level="B2" onclick="selectLevel('B2')">
+            <div class="level-code">B2</div>
+            <div class="level-name">Upper-Intermediate</div>
+            <div class="level-desc">Everyday-plus vocabulary, mostly literal comprehension.</div>
+          </div>
+          <div class="level-card" data-level="C1" onclick="selectLevel('C1')">
+            <div class="level-code">C1</div>
+            <div class="level-name">Advanced</div>
+            <div class="level-desc">Nuanced vocabulary, some inference-based questions.</div>
+          </div>
+          <div class="level-card" data-level="C2" onclick="selectLevel('C2')">
+            <div class="level-code">C2</div>
+            <div class="level-name">Mastery</div>
+            <div class="level-desc">Idiomatic vocabulary, inference and tone-based questions.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-gold" id="generate-btn" onclick="generateAll()" disabled>Generate lesson →</button>
+    </div>
+    <div id="error-slot"></div>
+  </div>
+
+  <!-- ═══ STAGE 2: LOADING ═══ -->
+  <div class="stage" id="stage-loading">
+    <div class="loading-box">
+      <div class="loading-ring"></div>
+      <div class="loading-text" id="loading-text">WRITING THE LESSON…</div>
+    </div>
+  </div>
+
+  <!-- ═══ STAGE 3: RESULT ═══ -->
+  <div class="stage" id="stage-result">
+    <div class="eyebrow">Reading · Step 2 of 2</div>
+    <h1 class="page-title">Your lesson is ready</h1>
+    <p class="page-sub">Download it, then drop the file into your <code>/reading/lessons/</code> folder and link it from the Reading tile.</p>
+
+    <div class="preview-box" id="lesson-preview"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="downloadLesson()" style="font-size:14.5px;padding:12px 26px">⬇ Download lesson HTML</button>
+      <button class="btn btn-outline" onclick="startOver()">← Start over</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   GATE
+═══════════════════════════════════════════════════ */
+let ADMIN_KEY = sessionStorage.getItem('intuity_admin_key') || '';
+if (ADMIN_KEY) showApp();
+
+function unlockGate() {
+  const val = document.getElementById('admin-key-input').value.trim();
+  if (!val) return;
+  ADMIN_KEY = val;
+  sessionStorage.setItem('intuity_admin_key', val);
+  showApp();
+}
+function showApp() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let STATE = { title:'', eyebrow:'', subtitle:'', paragraphs:[], survey:[], quiz:[], takeaways:[] };
+let selectedLevel = null;
+
+const ICONS = [
+  'fas fa-lightbulb','fas fa-gavel','fas fa-leaf','fas fa-balance-scale',
+  'fas fa-globe','fas fa-heart','fas fa-brain','fas fa-flask',
+  'fas fa-comment','fas fa-chart-line','fas fa-users','fas fa-star'
+];
+const LOADING_MESSAGES = [
+  'READING THE ARTICLE…', 'CHOOSING VOCABULARY…', 'WRITING PRE-READING QUESTIONS…',
+  'BUILDING THE COMPREHENSION QUIZ…', 'DRAFTING KEY TAKEAWAYS…'
+];
+
+function selectLevel(lv) {
+  selectedLevel = lv;
+  document.querySelectorAll('.level-card').forEach(c => c.classList.toggle('selected', c.dataset.level === lv));
+  refreshGenerateBtn();
+}
+document.getElementById('article-input').addEventListener('input', refreshGenerateBtn);
+function refreshGenerateBtn() {
+  const text = document.getElementById('article-input').value.trim();
+  document.getElementById('generate-btn').disabled = !(text.length > 100 && selectedLevel);
+}
+function showStage(id) {
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+/* ═══════════════════════════════════════════════════
+   GENERATE — calls our own Netlify function, not Anthropic directly
+═══════════════════════════════════════════════════ */
+async function generateAll() {
+  const articleText = document.getElementById('article-input').value.trim();
+  document.getElementById('error-slot').innerHTML = '';
+
+  const paragraphs = articleText
+    .split(/\n\s*\n/)
+    .map(p => p.replace(/\n/g,' ').trim())
+    .filter(p => p.length > 20);
+
+  if (paragraphs.length === 0) {
+    showError('Could not find any paragraphs in that text.');
+    return;
+  }
+
+  showStage('stage-loading');
+  animateLoadingText();
+
+  try {
+    const response = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      body: JSON.stringify({ paragraphs, level: selectedLevel })
+    });
+
+    if (response.status === 401) {
+      sessionStorage.removeItem('intuity_admin_key');
+      throw new Error('Admin key rejected. Refresh the page and re-enter it.');
+    }
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.error || ('Request failed (' + response.status + ')'));
+    }
+
+    const parsed = await response.json();
+    applyGenerated(paragraphs, parsed);
+    buildPreview();
+    showStage('stage-result');
+
+  } catch (err) {
+    console.error(err);
+    showStage('stage-input');
+    showError('Something went wrong: ' + err.message);
+  }
+}
+
+function animateLoadingText() {
+  let i = 0;
+  const el = document.getElementById('loading-text');
+  el.textContent = LOADING_MESSAGES[0];
+  const timer = setInterval(() => {
+    if (!document.getElementById('stage-loading').classList.contains('active')) { clearInterval(timer); return; }
+    i = (i + 1) % LOADING_MESSAGES.length;
+    el.textContent = LOADING_MESSAGES[i];
+  }, 1600);
+}
+
+function applyGenerated(paragraphTexts, parsed) {
+  const wordsByIndex = {};
+  (parsed.paragraphs || []).forEach(p => { wordsByIndex[p.index] = p.words || []; });
+
+  STATE.title = parsed.title || 'Untitled Lesson';
+  STATE.eyebrow = parsed.eyebrow || 'Reading Activity';
+  STATE.subtitle = parsed.subtitle || '';
+
+  STATE.paragraphs = paragraphTexts.map((text, i) => {
+    const rawWords = wordsByIndex[i] || [];
+    const words = rawWords.filter(w => w.word && text.toLowerCase().includes(String(w.word).toLowerCase()));
+    return { text, words: words.map(w => ({ word: w.word, def: w.def || '', synonym: w.synonym || '' })) };
+  });
+
+  STATE.survey = (parsed.survey || []).filter(q => q.question && Array.isArray(q.options) && q.options.length >= 2)
+    .map(q => ({ question: q.question, options: q.options }));
+
+  STATE.quiz = (parsed.quiz || []).filter(q => q.q && Array.isArray(q.opts) && q.opts.length >= 2)
+    .map(q => ({ q: q.q, opts: q.opts, a: Number.isInteger(q.a) ? q.a : 0 }));
+
+  STATE.takeaways = (parsed.takeaways || []).filter(t => t.text)
+    .map(t => ({ icon: ICONS.includes(t.icon) ? t.icon : 'fas fa-lightbulb', text: t.text }));
+}
+
+function showError(msg) {
+  document.getElementById('error-slot').innerHTML = `<div class="error-box">${escHtml(msg)}</div>`;
+}
+function startOver() {
+  STATE = { title:'', eyebrow:'', subtitle:'', paragraphs:[], survey:[], quiz:[], takeaways:[] };
+  document.getElementById('article-input').value = '';
+  document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
+  selectedLevel = null;
+  refreshGenerateBtn();
+  showStage('stage-input');
+}
+
+/* ═══════════════════════════════════════════════════
+   PREVIEW
+═══════════════════════════════════════════════════ */
+function buildPreview() {
+  const allWords = STATE.paragraphs.flatMap(p => p.words);
+  document.getElementById('lesson-preview').innerHTML = `
+    <div class="preview-eyebrow">${escHtml(STATE.eyebrow)} · Level ${escHtml(selectedLevel)}</div>
+    <h3>${escHtml(STATE.title)}</h3>
+    <div class="preview-subtitle">${escHtml(STATE.subtitle)}</div>
+    <div class="preview-section"><div class="preview-label">Paragraphs</div><div class="preview-val">${STATE.paragraphs.length} reading paragraphs</div></div>
+    <div class="preview-section"><div class="preview-label">Vocabulary</div><div class="preview-val">${allWords.map(w=>`<span class="pill">${escHtml(w.word)}</span>`).join('')}</div></div>
+    <div class="preview-section"><div class="preview-label">Synonyms</div><div class="preview-val">${allWords.map(w=>`<span class="pill">${escHtml(w.word)} → ${escHtml(w.synonym)}</span>`).join('')}</div></div>
+    <div class="preview-section"><div class="preview-label">Pre-reading</div><div class="preview-val">${STATE.survey.length} questions</div></div>
+    <div class="preview-section"><div class="preview-label">Quiz</div><div class="preview-val">${STATE.quiz.length} questions</div></div>
+    <div class="preview-section"><div class="preview-label">Takeaways</div><div class="preview-val">${STATE.takeaways.map(t=>escHtml(t.text)).join('<br>')}</div></div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   DOWNLOAD final student-facing HTML
+═══════════════════════════════════════════════════ */
+function downloadLesson() {
+  const html = generateLessonHTML();
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const slug = (STATE.title || 'lesson').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  a.href = url;
+  a.download = slug + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Lesson downloaded!');
+}
+
+function generateLessonHTML() {
+  const allWords   = STATE.paragraphs.flatMap(p => p.words);
+  const vocabulary = {};
+  allWords.filter(w=>w.def.trim()).forEach(w => { vocabulary[w.word] = w.def; });
+  const synonyms   = {};
+  allWords.filter(w=>w.synonym.trim()).forEach(w => { synonyms[w.word] = w.synonym; });
+
+  const paragraphs = STATE.paragraphs.map(para => {
+    let text = para.text;
+    const sorted = [...para.words].sort((a,b) => b.word.length - a.word.length);
+    sorted.forEach(({word}) => {
+      if (!word.trim()) return;
+      const esc = word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      const re  = new RegExp(`(?<![<vw>])\\b(${esc})\\b(?![^<]*>)`, 'gi');
+      text = text.replace(re, '<vw>$1</vw>');
+    });
+    return { text };
+  });
+
+  const survey = STATE.survey.map((q,i) => ({ id: 's'+(i+1), question: q.question, options: q.options }));
+  const quiz = STATE.quiz.map(q => ({ q: q.q, opts: q.opts, a: q.a }));
+  const takeaways = STATE.takeaways;
+
+  const JS = v => JSON.stringify(v, null, 2);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(STATE.title)}</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --accent: #c0392b; --accent2: #e67e22;
+    --bg: #0e0e0e; --bg2: #161616; --bg3: #1e1e1e;
+    --border: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.18);
+    --text: #f0ede8; --text-muted: #888; --text-dim: #555;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  body { font-family: 'Georgia','Times New Roman',serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  #progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg,var(--accent),var(--accent2)); z-index: 200; transition: width 0.4s ease; width: 20%; }
+  .score-pill { position: fixed; top: 16px; right: 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 99px; padding: 6px 14px; font-family: 'Courier New',monospace; font-size: 13px; z-index: 200; display: flex; align-items: center; gap: 8px; }
+  .score-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse-dot 2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .container { max-width: 760px; margin: 0 auto; padding: 60px 20px 80px; }
+  .phase { display: none; }
+  .phase.active { display: block; animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .lesson-header { margin-bottom: 2.5rem; }
+  .lesson-eyebrow { font-family:'Courier New',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin-bottom:0.75rem; }
+  .lesson-header h1 { font-size:clamp(1.6rem,4vw,2.4rem); font-weight:normal; line-height:1.2; color:var(--text); margin-bottom:0.75rem; }
+  .lesson-header p { font-size:1rem; color:var(--text-muted); font-style:italic; line-height:1.6; }
+  .card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:1.75rem; margin-bottom:1.25rem; }
+  .card-title { font-family:'Courier New',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); margin-bottom:1.25rem; }
+  .survey-q { margin-bottom:1.75rem; }
+  .survey-q:last-child { margin-bottom:0; }
+  .survey-q-text { font-size:0.95rem; color:var(--text); margin-bottom:0.9rem; line-height:1.5; }
+  .options-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; }
+  .opt { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:all 0.2s; font-size:0.875rem; color:var(--text-muted); background:var(--bg3); user-select:none; }
+  .opt:hover { border-color:var(--border-hover); color:var(--text); }
+  .opt input { display:none; }
+  .opt .radio-circle { width:16px; height:16px; border-radius:50%; border:1.5px solid var(--text-dim); flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+  .opt input:checked ~ .opt-text { color:var(--text); }
+  .opt:has(input:checked) { border-color:var(--accent); background:rgba(192,57,43,0.08); color:var(--text); }
+  .opt:has(input:checked) .radio-circle { background:var(--accent); border-color:var(--accent); }
+  .opt:has(input:checked) .radio-circle::after { content:''; width:6px; height:6px; border-radius:50%; background:white; }
+  .btn { display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:white; border:none; padding:12px 24px; border-radius:var(--radius-sm); font-size:0.9rem; font-family:'Courier New',monospace; letter-spacing:0.05em; cursor:pointer; transition:all 0.2s; margin-top:1.5rem; }
+  .btn:hover { background:#a93226; transform:translateY(-1px); }
+  .btn-ghost { background:transparent; border:1px solid var(--border-hover); color:var(--text-muted); }
+  .btn-ghost:hover { background:var(--bg3); color:var(--text); }
+  .reading-intro { font-size:0.85rem; color:var(--text-dim); font-family:'Courier New',monospace; letter-spacing:0.05em; margin-bottom:1.5rem; }
+  .para { font-size:1rem; line-height:1.85; color:#ccc; padding:1.25rem 1.5rem; border-left:2px solid var(--border); margin-bottom:1rem; border-radius:0 var(--radius-sm) var(--radius-sm) 0; background:var(--bg2); cursor:default; transition:all 0.2s; }
+  .para:hover { border-left-color:var(--accent2); background:var(--bg3); color:var(--text); }
+  .para.active { border-left-color:var(--accent); color:var(--text); background:var(--bg3); }
+  .vw { background:rgba(230,126,34,0.15); color:var(--accent2); border-bottom:1px dashed var(--accent2); padding:1px 3px; border-radius:3px; cursor:pointer; position:relative; white-space:nowrap; transition:background 0.15s; }
+  .vw:hover { background:rgba(230,126,34,0.28); }
+  .vw::after { content:attr(data-def); position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); background:#1a1a1a; border:1px solid var(--accent2); border-radius:var(--radius-sm); padding:8px 12px; width:220px; font-size:0.78rem; font-style:normal; line-height:1.5; color:var(--text); pointer-events:none; opacity:0; visibility:hidden; transition:opacity 0.15s,visibility 0.15s; z-index:999; box-shadow:0 6px 20px rgba(0,0,0,0.6); white-space:normal; text-align:left; font-weight:normal; }
+  .vw:hover::after, .vw:focus::after, .vw.tip-open::after { opacity:1; visibility:visible; }
+  .game-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:1.5rem; }
+  .game-tile { border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem 1.25rem; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--bg2); }
+  .game-tile:hover { border-color:var(--accent); background:var(--bg3); transform:translateY(-3px); }
+  .game-tile .ti { font-size:2rem; margin-bottom:0.75rem; display:block; color:var(--accent2); }
+  .game-tile h3 { font-size:0.95rem; font-weight:normal; margin-bottom:0.4rem; }
+  .game-tile p { font-size:0.8rem; color:var(--text-muted); line-height:1.4; }
+  #game-area { margin-top:1rem; }
+  .match-layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:1rem; }
+  @media(max-width:540px){.match-layout{grid-template-columns:1fr}}
+  .match-col-label { font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px; text-align:center; }
+  .match-item { border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; font-size:0.83rem; line-height:1.4; margin-bottom:8px; transition:all 0.2s; background:var(--bg3); }
+  .word-item { cursor:grab; color:var(--accent2); border-left:3px solid var(--accent2); }
+  .word-item:active { cursor:grabbing; opacity:0.5; }
+  .def-item { cursor:default; color:var(--text-muted); min-height:56px; display:flex; align-items:center; }
+  .def-item.drag-over { border-color:var(--accent2); background:rgba(230,126,34,0.08); }
+  .match-item.correct { border-color:#27ae60; background:rgba(39,174,96,0.1); color:#2ecc71; }
+  .match-item.incorrect { border-color:var(--accent); animation:shake 0.4s; }
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .syn-layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:1rem; }
+  @media(max-width:500px){.syn-layout{grid-template-columns:1fr;gap:24px}}
+  .syn-col-label { font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px; text-align:center; }
+  .syn-item { border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; font-size:0.875rem; margin-bottom:8px; cursor:pointer; text-align:center; transition:all 0.2s; background:var(--bg3); color:var(--text-muted); }
+  .syn-item:hover:not(.matched){border-color:var(--border-hover);color:var(--text)}
+  .syn-item.selected{border-color:#3498db;background:rgba(52,152,219,0.12);color:var(--text)}
+  .syn-item.matched{border-color:#27ae60;background:rgba(39,174,96,0.1);color:#2ecc71;cursor:default}
+  .syn-item.wrong{border-color:var(--accent);background:rgba(192,57,43,0.1);animation:shake 0.4s}
+  .quiz-q { border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; margin-bottom:1.25rem; background:var(--bg2); }
+  .quiz-q-text { font-size:0.95rem; margin-bottom:1rem; line-height:1.5; }
+  .quiz-q-text strong { font-family:'Courier New',monospace; font-size:0.8rem; color:var(--text-dim); display:block; margin-bottom:6px; letter-spacing:0.08em; text-transform:uppercase; font-weight:normal; }
+  .completion-header { text-align:center; padding:2rem 0; }
+  .completion-header h2 { font-size:2.2rem; font-weight:normal; margin-bottom:0.75rem; }
+  .completion-header p { color:var(--text-muted); font-style:italic; }
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin:2rem 0; }
+  .stat-box { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; text-align:center; }
+  .stat-val { font-size:2rem; font-family:'Courier New',monospace; color:var(--accent2); display:block; }
+  .stat-label { font-size:0.75rem; color:var(--text-dim); margin-top:4px; letter-spacing:0.05em; text-transform:uppercase; }
+  .takeaway { display:flex; align-items:flex-start; gap:12px; padding:1rem 1.25rem; border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:10px; font-size:0.9rem; line-height:1.5; background:var(--bg2); }
+  .takeaway i { color:var(--accent2); margin-top:2px; flex-shrink:0; }
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1a1a; border:1px solid var(--border-hover); border-radius:var(--radius-sm); padding:10px 20px; font-size:0.875rem; z-index:500; opacity:0; transition:all 0.25s; white-space:nowrap; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .phase-label { font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); margin-bottom:2rem; }
+  .divider { height:1px; background:var(--border); margin:1.5rem 0; }
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+<div class="score-pill"><div class="dot"></div><span id="score-val">0</span> pts</div>
+<div id="toast"></div>
+<div class="container">
+  <div class="phase active" id="ph-pre">
+    <div class="phase-label">Phase 1 of 4 — Pre-Reading</div>
+    <div class="lesson-header">
+      <div class="lesson-eyebrow" id="hdr-eyebrow"></div>
+      <h1 id="hdr-title"></h1>
+      <p id="hdr-subtitle"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">Before you read — share your thoughts</div>
+      <div id="survey-container"></div>
+      <button class="btn" onclick="goReading()"><i class="fas fa-book-open"></i> Start Reading</button>
+    </div>
+  </div>
+  <div class="phase" id="ph-reading">
+    <div class="phase-label">Phase 2 of 4 — Reading</div>
+    <div class="lesson-header"><h1 id="read-title"></h1></div>
+    <p class="reading-intro">Tap any <span style="color:var(--accent2);border-bottom:1px dashed var(--accent2)">highlighted word</span> to see its meaning.</p>
+    <div id="reading-container"></div>
+    <button class="btn" onclick="goGames()" style="margin-top:2rem"><i class="fas fa-puzzle-piece"></i> Go to Vocabulary Games</button>
+  </div>
+  <div class="phase" id="ph-games">
+    <div class="phase-label">Phase 3 of 4 — Vocabulary Games</div>
+    <div class="lesson-header"><h1>Vocabulary Games</h1><p>Choose a game to practise the words from the text.</p></div>
+    <div class="game-tiles">
+      <div class="game-tile" onclick="launchDragMatch()"><span class="fas fa-grip-lines ti"></span><h3>Drag &amp; Match</h3><p>Drag terms to their correct definitions</p></div>
+      <div class="game-tile" onclick="launchSynonyms()"><span class="fas fa-link ti"></span><h3>Synonym Matcher</h3><p>Connect advanced words with simpler equivalents</p></div>
+      <div class="game-tile" onclick="launchQuickFire()"><span class="fas fa-bolt ti"></span><h3>Quick-Fire Quiz</h3><p>Choose the correct definition under pressure</p></div>
+    </div>
+    <div id="game-area"></div>
+    <button class="btn" onclick="goPost()" style="margin-top:2rem"><i class="fas fa-trophy"></i> Final Comprehension Test</button>
+  </div>
+  <div class="phase" id="ph-post">
+    <div class="phase-label">Phase 4 of 4 — Comprehension Test</div>
+    <div class="lesson-header"><h1>Final Challenge</h1><p>Answer the questions based on what you read.</p></div>
+    <div id="quiz-container"></div>
+    <button class="btn" onclick="showCompletion()"><i class="fas fa-check"></i> Submit Answers</button>
+  </div>
+  <div class="phase" id="ph-done">
+    <div class="completion-header"><h2>Well done!</h2><p>You've completed the reading activity.</p></div>
+    <div class="stats-row">
+      <div class="stat-box"><span class="stat-val" id="s-score">0</span><div class="stat-label">Total Score</div></div>
+      <div class="stat-box"><span class="stat-val" id="s-vocab">0</span><div class="stat-label">Words Explored</div></div>
+      <div class="stat-box"><span class="stat-val" id="s-quiz">0%</span><div class="stat-label">Quiz Accuracy</div></div>
+      <div class="stat-box"><span class="stat-val" id="s-time">0</span><div class="stat-label">Minutes Spent</div></div>
+    </div>
+    <div class="card"><div class="card-title">Key Takeaways</div><div id="takeaways-container"></div></div>
+    <button class="btn btn-ghost" onclick="restart()"><i class="fas fa-redo"></i> Start Again</button>
+  </div>
+</div>
+<script>
+const LESSON = {
+  eyebrow: ${JS(STATE.eyebrow)},
+  title:   ${JS(STATE.title)},
+  subtitle:${JS(STATE.subtitle)},
+  survey:  ${JS(survey)},
+  paragraphs: ${JS(paragraphs)},
+  vocabulary: ${JS(vocabulary)},
+  synonyms:   ${JS(synonyms)},
+  quiz:       ${JS(quiz)},
+  takeaways:  ${JS(takeaways)}
+};
+
+let score=0,vocabSeen=new Set(),quizCorrect=0,startTime=Date.now(),currentPhase=0;
+const phases=['ph-pre','ph-reading','ph-games','ph-post','ph-done'];
+
+function buildPre(){
+  document.getElementById('hdr-eyebrow').textContent=LESSON.eyebrow;
+  document.getElementById('hdr-title').textContent=LESSON.title;
+  document.getElementById('hdr-subtitle').textContent=LESSON.subtitle;
+  document.getElementById('survey-container').innerHTML=LESSON.survey.map(q=>\`
+    <div class="survey-q">
+      <div class="survey-q-text">\${q.question}</div>
+      <div class="options-grid">\${q.options.map((opt,i)=>\`
+        <label class="opt"><input type="radio" name="\${q.id}" value="\${i}">
+        <div class="radio-circle"></div><span class="opt-text">\${opt}</span></label>\`).join('')}
+      </div>
+    </div>\`).join('');
+}
+
+function buildReading(){
+  document.getElementById('read-title').textContent=LESSON.title;
+  const container=document.getElementById('reading-container');
+  container.innerHTML=LESSON.paragraphs.map((p,i)=>{
+    const html=p.text.replace(/<vw>(.*?)<\\/vw>/g,(_,word)=>{
+      const def=(LESSON.vocabulary[word]||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      return \`<span class="vw" tabindex="0" role="button" data-word="\${word.replace(/"/g,'&quot;')}" data-def="\${def}">\${word}</span>\`;
+    });
+    return \`<div class="para" id="para-\${i}">\${html}</div>\`;
+  }).join('');
+  container.addEventListener('click',e=>{
+    const span=e.target.closest('.vw');
+    if(!span){document.querySelectorAll('.vw.tip-open').forEach(s=>s.classList.remove('tip-open'));return;}
+    e.stopPropagation();
+    const isOpen=span.classList.contains('tip-open');
+    document.querySelectorAll('.vw.tip-open').forEach(s=>s.classList.remove('tip-open'));
+    if(!isOpen)span.classList.add('tip-open');
+    const word=span.dataset.word;
+    if(word&&!vocabSeen.has(word)){vocabSeen.add(word);addScore(3);}
+  });
+  if(!window._vda){document.addEventListener('click',()=>document.querySelectorAll('.vw.tip-open').forEach(s=>s.classList.remove('tip-open')));window._vda=true;}
+}
+
+function launchDragMatch(){
+  const vocab=Object.entries(LESSON.vocabulary).slice(0,6);
+  const words=vocab.map(([w])=>w);
+  const defs=shuffle(vocab.map(([,d])=>d));
+  let dragged=null,matched=0;
+  document.getElementById('game-area').innerHTML=\`<div class="card"><div class="card-title">Drag each term onto its correct definition</div><div class="match-layout"><div><div class="match-col-label">Terms</div>\${words.map(w=>\`<div class="match-item word-item" draggable="true" data-word="\${w}">\${w}</div>\`).join('')}</div><div><div class="match-col-label">Definitions</div>\${defs.map((d,i)=>\`<div class="match-item def-item" data-def="\${d}">\${d}</div>\`).join('')}</div></div></div>\`;
+  document.querySelectorAll('.word-item').forEach(el=>{el.addEventListener('dragstart',()=>{dragged=el;el.style.opacity='0.4';});el.addEventListener('dragend',()=>{el.style.opacity='1';});});
+  document.querySelectorAll('.def-item').forEach(slot=>{
+    slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('drag-over');});
+    slot.addEventListener('dragleave',()=>slot.classList.remove('drag-over'));
+    slot.addEventListener('drop',e=>{e.preventDefault();slot.classList.remove('drag-over');if(!dragged||slot.classList.contains('correct'))return;const ok=LESSON.vocabulary[dragged.dataset.word]===slot.dataset.def;if(ok){slot.classList.add('correct');dragged.classList.add('correct');dragged.setAttribute('draggable','false');addScore(20);matched++;if(matched===words.length)toast('All matched!');}else{slot.classList.add('incorrect');dragged.classList.add('incorrect');setTimeout(()=>{slot.classList.remove('incorrect');dragged.classList.remove('incorrect');},600);}});
+  });
+}
+
+function launchSynonyms(){
+  const pairs=Object.entries(LESSON.synonyms);
+  if(pairs.length<2){document.getElementById('game-area').innerHTML='<div class="card"><p style="color:var(--text-muted)">Not enough synonyms to play this game.</p></div>';return;}
+  const words=pairs.map(([w])=>w);
+  const syns=shuffle(pairs.map(([,s])=>s));
+  let sel=null,matched=0;
+  document.getElementById('game-area').innerHTML=\`<div class="card"><div class="card-title">Tap a word, then tap its simpler synonym</div><div class="syn-layout"><div><div class="syn-col-label">Advanced words</div>\${words.map(w=>\`<div class="syn-item" data-word="\${w}" data-type="word">\${w}</div>\`).join('')}</div><div><div class="syn-col-label">Simple synonyms</div>\${syns.map(s=>\`<div class="syn-item" data-word="\${s}" data-type="syn">\${s}</div>\`).join('')}</div></div></div>\`;
+  document.querySelectorAll('.syn-item').forEach(el=>{el.addEventListener('click',()=>{if(el.classList.contains('matched'))return;if(!sel){el.classList.add('selected');sel=el;return;}if(sel===el){el.classList.remove('selected');sel=null;return;}const a=sel,b=el;const word=a.dataset.type==='word'?a.dataset.word:b.dataset.word;const syn=a.dataset.type==='syn'?a.dataset.word:b.dataset.word;const ok=LESSON.synonyms[word]===syn;if(ok){a.classList.remove('selected');a.classList.add('matched');b.classList.add('matched');addScore(15);matched++;if(matched===pairs.length){toast('All synonyms matched!');addScore(30);}}else{a.classList.add('wrong');b.classList.add('wrong');setTimeout(()=>{a.classList.remove('wrong','selected');b.classList.remove('wrong');},600);}sel=null;});});
+}
+
+function launchQuickFire(){
+  const items=shuffle(Object.entries(LESSON.vocabulary)).slice(0,8);
+  let idx=0,correct=0;
+  function render(){
+    if(idx>=items.length){document.getElementById('game-area').innerHTML=\`<div class="card" style="text-align:center"><div style="font-size:2rem;margin-bottom:1rem">\${correct>=Math.ceil(items.length*0.7)?'🎉':'💪'}</div><p>You got <strong>\${correct}/\${items.length}</strong> correct</p></div>\`;addScore(correct*8);return;}
+    const[word,correctDef]=items[idx];
+    const wrongs=shuffle(Object.values(LESSON.vocabulary).filter(d=>d!==correctDef)).slice(0,3);
+    const opts=shuffle([correctDef,...wrongs]);
+    document.getElementById('game-area').innerHTML=\`<div class="card"><div class="card-title">Question \${idx+1} of \${items.length}</div><p style="font-size:1rem;margin-bottom:1.25rem">What does <strong style="color:var(--accent2)">&ldquo;\${word}&rdquo;</strong> mean?</p><div style="display:flex;flex-direction:column;gap:8px">\${opts.map(opt=>\`<button onclick="qfAns(this,\${JSON.stringify(opt)},\${JSON.stringify(correctDef)})" style="text-align:left;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:0.875rem;color:var(--text-muted);transition:all 0.2s;font-family:Georgia,serif">\${opt}</button>\`).join('')}</div></div>\`;
+  }
+  window.qfAns=function(btn,chosen,correct_def){document.querySelectorAll('#game-area button').forEach(b=>b.onclick=null);if(chosen===correct_def){btn.style.background='rgba(39,174,96,0.15)';btn.style.borderColor='#27ae60';btn.style.color='#2ecc71';correct++;}else{btn.style.background='rgba(192,57,43,0.15)';btn.style.borderColor='var(--accent)';btn.style.color='#e74c3c';document.querySelectorAll('#game-area button').forEach(b=>{if(b.textContent.trim()===correct_def){b.style.background='rgba(39,174,96,0.12)';b.style.borderColor='#27ae60';b.style.color='#2ecc71';}});}idx++;setTimeout(render,900);};
+  render();
+}
+
+function buildQuiz(){
+  document.getElementById('quiz-container').innerHTML=LESSON.quiz.map((q,i)=>\`<div class="quiz-q"><div class="quiz-q-text"><strong>Question \${i+1}</strong>\${q.q}</div><div class="options-grid">\${q.opts.map((opt,j)=>\`<label class="opt"><input type="radio" name="qq\${i}" value="\${j}"><div class="radio-circle"></div><span class="opt-text">\${opt}</span></label>\`).join('')}</div></div>\`).join('');
+}
+
+function showCompletion(){
+  let correct=0;
+  LESSON.quiz.forEach((q,i)=>{const sel=document.querySelector(\`input[name="qq\${i}"]:checked\`);if(sel&&parseInt(sel.value)===q.a)correct++;});
+  quizCorrect=correct;addScore(correct*15);
+  const mins=Math.max(1,Math.round((Date.now()-startTime)/60000));
+  document.getElementById('s-score').textContent=score;
+  document.getElementById('s-vocab').textContent=vocabSeen.size;
+  document.getElementById('s-quiz').textContent=Math.round((correct/Math.max(1,LESSON.quiz.length))*100)+'%';
+  document.getElementById('s-time').textContent=mins;
+  document.getElementById('takeaways-container').innerHTML=LESSON.takeaways.map(t=>\`<div class="takeaway"><i class="\${t.icon}"></i><span>\${t.text}</span></div>\`).join('');
+  goPhase(4);
+}
+
+function goReading(){addScore(document.querySelectorAll('#ph-pre input:checked').length*5);goPhase(1);}
+function goGames(){goPhase(2);}
+function goPost(){goPhase(3);}
+function goPhase(n){currentPhase=n;phases.forEach((id,i)=>document.getElementById(id).classList.toggle('active',i===n));document.getElementById('progress-bar').style.width=((n+1)/phases.length*100)+'%';window.scrollTo(0,0);}
+function addScore(n){score+=n;document.getElementById('score-val').textContent=score;}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function restart(){score=0;vocabSeen=new Set();quizCorrect=0;startTime=Date.now();document.getElementById('score-val').textContent='0';buildPre();buildReading();buildQuiz();goPhase(0);}
+buildPre();buildReading();buildQuiz();
+<\/script>
+</body>
+</html>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════ */
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function showToast(msg) {
+  const t = document.getElementById('gen-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
