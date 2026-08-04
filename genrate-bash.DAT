@@ -1,4 +1,3 @@
-mkdir -p /home/claude/intuity-integration/netlify/functions /home/claude/intuity-integration/admin && echo ok
-Output
+bash
 
-ok
+grep -n '<\\/script>' /home/claude/intuity-deploy/admin/generate.html; echo "---"; grep -c 'function generateLessonHTML' /home/claude/intuity-deploy/admin/generate.html; echo "---"; node -e "require('fs').readFileSync('/home/claude/intuity-deploy/admin/generate.html','utf8'); console.log('read ok, length', require('fs').statSync('/home/claude/intuity-deploy/admin/generate.html').size)"
